@@ -4,6 +4,7 @@ import os
 from os import path, replace
 import json
 from pipe import where
+import psutil
 
 def is_running( pid ):
     try:
@@ -33,16 +34,18 @@ def print_struct_file( fd, file ):
     for field in struct_file_fields:
         print( f'\t{field}:\t{file[field]}' )
 
+def get_available_tasks():
+    tasks = os.listdir( _fdesc_path )
+    return list( tasks | where( lambda task: is_running( int( task ) ) ) )
 
 def main( argc, argv ):
 
     if ( not path.exists( _fdesc_path ) ):
         print( f'error: module {_fdesc_modname} not loaded...' )
     else:
-        tasks = os.listdir( _fdesc_path )
-        tasks = list( tasks | where( lambda task: is_running( int( task ) ) ) )
+        tasks = get_available_tasks()
         print( 'list of available processes:' )
-        print( '\t'.join( tasks ) )
+        print( '\n'.join( [ f'{psutil.Process( int( task ) ).name()}:\t{task}' for task in get_available_tasks() ] ) )
         task = enter_while_in_set( 'enter the pid: ', 'entered unavailable pid, try again...', tasks )
 
         with open( f'{_fdesc_path}/{task}', 'r' ) as f:
